@@ -1,0 +1,8 @@
+src/.virtualenv
+src/tmp_zips
+.idea
+.coverage
+src/youwol_utils
+src/youwol_files_backend
+**/__pycache__/**/*
+
