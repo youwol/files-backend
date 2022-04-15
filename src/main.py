@@ -1,10 +1,29 @@
-from youwol_files_backend import get_router
+from youwol_files_backend import get_router, Configuration as ServiceConfiguration
 from youwol_utils.servers.fast_api import serve, FastApiApp, FastApiRouter, \
-    select_configuration_from_command_line
+    select_configuration_from_command_line, AppConfiguration
+
+
+async def local() -> AppConfiguration[ServiceConfiguration]:
+    from config_local import get_configuration as config
+    return await config()
+
+
+async def local_minio() -> AppConfiguration[ServiceConfiguration]:
+    from config_local_minio import get_configuration as config
+    return await config()
+
+
+async def prod() -> AppConfiguration[ServiceConfiguration]:
+    from config_prod import get_configuration as config
+    return await config()
 
 
 app_config = select_configuration_from_command_line(
-    {}
+    {
+        "local": local,
+        "local-minio": local_minio,
+        "prod": prod
+    }
 )
 
 serve(
