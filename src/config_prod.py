@@ -6,7 +6,7 @@ from config_common import cache_prefix
 from youwol_files_backend import Constants, Configuration as ServiceConfiguration
 from youwol_utils import AuthClient, CacheClient
 from youwol_utils.clients.file_system.minio_file_system import MinioFileSystem
-from youwol_utils.context import DeployedContextLogger
+from youwol_utils.context import DeployedContextReporter
 from youwol_utils.servers.fast_api import AppConfiguration, ServerOptions, FastApiMiddleware
 from youwol_utils.middlewares import Middleware
 
@@ -49,7 +49,7 @@ async def get_configuration() -> AppConfiguration[ServiceConfiguration[MinioFile
                 }
             )
         ],
-        ctx_logger=DeployedContextLogger()
+        ctx_logger=DeployedContextReporter()
     )
 
     return AppConfiguration[ServiceConfiguration](
