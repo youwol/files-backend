@@ -2,7 +2,7 @@ from pathlib import Path
 from config_common import get_py_youwol_env
 from youwol_files_backend import Constants, Configuration as ServiceConfiguration
 from youwol_utils.clients.file_system import LocalFileSystem
-from youwol_utils.context import PyYouwolContextLogger
+from youwol_utils.context import PyYouwolContextReporter
 from youwol_utils.servers.fast_api import AppConfiguration, ServerOptions
 
 
@@ -21,7 +21,7 @@ async def get_configuration() -> AppConfiguration[ServiceConfiguration[LocalFile
         http_port=env['portsBook']['files-backend'],
         base_path="",
         middlewares=[],
-        ctx_logger=PyYouwolContextLogger(py_youwol_port=env["httpPort"])
+        ctx_logger=PyYouwolContextReporter(py_youwol_port=env["httpPort"])
     )
     return AppConfiguration[ServiceConfiguration](
         server=server_options,
