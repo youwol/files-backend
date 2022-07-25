@@ -2,22 +2,35 @@ import os
 
 from minio import Minio
 
-from config_common import cache_prefix
 from youwol_files_backend import Constants, Configuration as ServiceConfiguration
-from youwol_utils import AuthClient, CacheClient
 from youwol_utils.clients.file_system.minio_file_system import MinioFileSystem
+from youwol_utils.clients.oidc.oidc_config import OidcInfos, PrivateClient
 from youwol_utils.context import DeployedContextReporter
+from youwol_utils.middlewares import AuthMiddleware
 from youwol_utils.servers.fast_api import AppConfiguration, ServerOptions, FastApiMiddleware
-from youwol_utils.middlewares import Middleware
 
 
 async def get_configuration() -> AppConfiguration[ServiceConfiguration[MinioFileSystem]]:
-    required_env_vars = ["MINIO_HOST_PORT", "MINIO_ACCESS_KEY", "MINIO_ACCESS_SECRET", "AUTH_HOST", "AUTH_CLIENT_ID",
-                         "AUTH_CLIENT_SECRET", "AUTH_CLIENT_SCOPE"]
+    required_env_vars = [
+        "OPENID_BASE_URL",
+        "OPENID_CLIENT_ID",
+        "OPENID_CLIENT_SECRET",
+        "MINIO_HOST_PORT",
+        "MINIO_ACCESS_KEY",
+        "MINIO_ACCESS_SECRET",
+    ]
 
     not_founds = [v for v in required_env_vars if not os.getenv(v)]
     if not_founds:
         raise RuntimeError(f"Missing environments variable: {not_founds}")
+
+    openid_infos = OidcInfos(
+        base_uri=os.getenv("OPENID_BASE_URL"),
+        client=PrivateClient(
+            client_id=os.getenv("OPENID_CLIENT_ID"),
+            client_secret=os.getenv("OPENID_CLIENT_SECRET")
+        )
+    )
 
     service_config: ServiceConfiguration[MinioFileSystem] = ServiceConfiguration(
         file_system=MinioFileSystem(
@@ -30,9 +43,6 @@ async def get_configuration() -> AppConfiguration[ServiceConfiguration[MinioFile
             )
         )
     )
-    openid_host = os.getenv("AUTH_HOST")
-    auth_client = AuthClient(url_base=f"https://{openid_host}/auth")
-    cache_client = CacheClient(host="redis-master.infra.svc.cluster.local", prefix=cache_prefix)
 
     await service_config.file_system.ensure_bucket()
     server_options = ServerOptions(
@@ -41,11 +51,10 @@ async def get_configuration() -> AppConfiguration[ServiceConfiguration[MinioFile
         base_path="",
         middlewares=[
             FastApiMiddleware(
-                Middleware, {
-                    "auth_client": auth_client,
-                    "cache_client": cache_client,
-                    # healthz need to not be protected as it is used for liveness prob
-                    "unprotected_paths": lambda url: url.path.split("/")[-1] == "healthz"
+                AuthMiddleware, {
+                    'openid_infos': openid_infos,
+                    'predicate_public_path': lambda url:
+                    url.path.endswith("/healthz")
                 }
             )
         ],
