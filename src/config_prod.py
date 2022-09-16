@@ -1,5 +1,4 @@
 import os
-
 from minio import Minio
 
 from youwol_files_backend import Constants, Configuration as ServiceConfiguration
@@ -7,7 +6,7 @@ from youwol_utils.clients.file_system.minio_file_system import MinioFileSystem
 from youwol_utils.clients.oidc.oidc_config import OidcInfos, PrivateClient
 from youwol_utils.context import DeployedContextReporter
 from youwol_utils.middlewares import AuthMiddleware
-from youwol_utils.servers.env import OPENID_CLIENT, MINIO, Env
+from youwol_utils.servers.env import OPENID_CLIENT, MINIO, Env, minio_endpoint
 from youwol_utils.servers.fast_api import AppConfiguration, ServerOptions, FastApiMiddleware
 
 
@@ -29,7 +28,7 @@ async def get_configuration() -> AppConfiguration[ServiceConfiguration[MinioFile
         file_system=MinioFileSystem(
             bucket_name=Constants.namespace,
             client=Minio(
-                endpoint=f"{os.getenv(Env.MINIO_HOST)}:9000",
+                endpoint=minio_endpoint(minio_host=os.getenv(Env.MINIO_HOST)),
                 access_key=os.getenv(Env.MINIO_ACCESS_KEY),
                 secret_key=os.getenv(Env.MINIO_ACCESS_SECRET),
                 secure=False
